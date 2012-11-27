@@ -1,0 +1,83 @@
+#!/usr/bin/env php
+<?php
+require_once('utils.php');
+
+if(1 == $_SERVER["argc"]) {
+  echo "Try `./phpmr --help' for more information.\n";
+  exit;
+}
+
+for($i = 1; $i < $_SERVER["argc"]; $i++)
+{
+  switch($_SERVER["argv"][$i])
+  {
+  case "-v":
+  case "--version":
+    echo  "PMR v0.0.1 03:44 PM\n";
+    exit;
+    break;
+  
+  case "--debug":
+    $DEBUG = true;
+    break;
+    
+  case "-c":
+  case "--childs":
+    $CHILDS = $_SERVER["argv"][++$i];
+    if($CHILDS < 2) {
+      echo "PMR want two childs at least.\n";
+      exit;
+    }
+    break;
+
+  case "--work":
+  case "--workdir":
+  case "-w":
+    $WORK = $_SERVER["argv"][++$i];
+    
+    break;
+
+  case "-f":
+  case "--file":
+    $FILE = $_SERVER["argv"][++$i];
+    break;
+
+  case "--task":
+    $TASK = $_SERVER["argv"][++$i];
+    break;
+
+  case "-h":
+  case "--help":
+    echo "USEAGE:\n";
+    echo "-v --version: show version for PHP MapReduce\n";
+    echo "-w --work --workdir: spec the working dir\n";
+    echo "-c --childs :tell me how many child would fork\n";
+    echo "-f --file: spec what the PMR work on?\n";
+    echo "--task: spec the file contains map and reduce function.\n";
+    exit;
+ default:
+   echo "Try `start --help' for more information.\n";
+   exit;
+  }
+}
+
+if($TASK)
+  require_once($TASK);
+
+$snapshot = time();
+$PREFIX = 'chk'.$snapshot;
+
+echo "PMR will split the target <$FILE> into <$CHILDS> chunks...";
+
+$res = fsplit($FILE,$CHILDS,$WORK,$PREFIX);
+if($res !== false)
+  echo "DONE!\n\n";
+else {
+  echo "FAILED!\n\n";
+  exit;
+}
+
+echo "PMR will spwan childs to work under $WORK...\n\n";
+$files = fconqur($WORK,$PREFIX);
+$outut  = run($files,$snapshot,map_callback,reduce_callback);
+echo "\nPMR finished!\n*********\n";
